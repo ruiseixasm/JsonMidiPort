@@ -13,4 +13,21 @@ Lesser General Public License for more details.
 https://github.com/ruiseixasm/JsonMidiPlayer
 https://github.com/ruiseixasm/JsonMidiPort
 */
+#ifndef MIDI_JSON_PORT_H
+#define MIDI_JSON_PORT_H
 
+#include <iostream>
+
+
+class HelloWorld
+{
+public:
+    static int HelloWorldCall() {
+        std::cout << "Hello World!";
+        return 0;
+    }
+};
+
+
+
+#endif // MIDI_JSON_PORT_H

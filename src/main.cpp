@@ -14,3 +14,12 @@ https://github.com/ruiseixasm/JsonMidiPlayer
 https://github.com/ruiseixasm/JsonMidiPort
 */
 
+#include "JsonMidiPort.h"
+
+int main(int argc, char* argv[]) {
+
+	HelloWorld::HelloWorldCall();
+
+	return 0;
+}
+

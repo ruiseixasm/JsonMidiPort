@@ -19,24 +19,29 @@ https://github.com/ruiseixasm/JsonMidiPort
 cmake_minimum_required(VERSION 3.15)
 project(JsonMidiPort
         VERSION 1.0.0
-        DESCRIPTION "Very simple MIDI Player of JSON files"
+        DESCRIPTION "A Windows virtual MIDI port"
         HOMEPAGE_URL "https://github.com/ruiseixasm/JsonMidiPort"
         LANGUAGES CXX)
 
 # Generates a compile_commands.json file containing the exact compiler calls for all translation units of the project in machine-readable form.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Source files
+set(SOURCES
+    main.cpp
+    src/JsonMidiPort.cpp
+)
+
+# Executable
+add_executable(JsonMidiPort ${SOURCES})
+
 # Include directories
-include_directories(src single_include)
+target_include_directories(JsonMidiPort PRIVATE
+    src
+    single_include
+)
 
-# Add main.cpp explicitly
-set(STATIC_SOURCES src/JsonMidiPort.cpp)
-
-# Add main.cpp explicitly
-set(EXECUTABLE_SOURCES main.cpp src/JsonMidiPort.cpp)
-
-# Add the executable target
-add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCES})
-
-add_compile_definitions(__WINDOWS_MM__)
-
+# Windows MIDI support
+target_compile_definitions(JsonMidiPort PRIVATE
+    WINDOWS_MM
+)
