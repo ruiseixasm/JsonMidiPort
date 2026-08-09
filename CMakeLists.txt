@@ -14,8 +14,6 @@ https://github.com/ruiseixasm/JsonMidiPlayer
 https://github.com/ruiseixasm/JsonMidiPort
 ]===]
 
-# List all available generators command: cmake --help
-# Run cmake with a specific generator selected: cmake -g "MinGW Makefiles" ..
 cmake_minimum_required(VERSION 3.15)
 project(JsonMidiPort
         VERSION 1.0.0
@@ -23,25 +21,43 @@ project(JsonMidiPort
         HOMEPAGE_URL "https://github.com/ruiseixasm/JsonMidiPort"
         LANGUAGES CXX)
 
-# Generates a compile_commands.json file containing the exact compiler calls for all translation units of the project in machine-readable form.
+# Generates a compile_commands.json file
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Source files
+# Source files - corrected paths
 set(SOURCES
-    main.cpp
+    src/main.cpp
     src/JsonMidiPort.cpp
+    src/TrayIcon.cpp
 )
 
 # Executable
 add_executable(JsonMidiPort ${SOURCES})
 
-# Include directories
+# Include directories - removed non-existent single_include
 target_include_directories(JsonMidiPort PRIVATE
     src
-    single_include
 )
 
 # Windows MIDI support
 target_compile_definitions(JsonMidiPort PRIVATE
     WINDOWS_MM
+)
+
+# Link Windows libraries
+target_link_libraries(JsonMidiPort
+    winmm
+    user32
+    shell32
+)
+
+# Set C++ standard
+set_target_properties(JsonMidiPort PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+)
+
+# Enable Windows subsystem (no console window)
+set_target_properties(JsonMidiPort PROPERTIES
+    WIN32_EXECUTABLE TRUE
 )
