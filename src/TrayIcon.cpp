@@ -29,6 +29,13 @@ bool TrayIcon::create()
     if (!RegisterClassW(&wc) &&
         GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
     {
+        MessageBoxW(
+            nullptr,
+            L"RegisterClassW failed.",
+            L"JsonMidiPort",
+            MB_OK | MB_ICONERROR
+        );
+
         return false;
     }
 
@@ -45,7 +52,16 @@ bool TrayIcon::create()
     );
 
     if (!window_)
+    {
+        MessageBoxW(
+            nullptr,
+            L"CreateWindowExW failed.",
+            L"JsonMidiPort",
+            MB_OK | MB_ICONERROR
+        );
+
         return false;
+    }
 
     iconData_.cbSize = sizeof(iconData_);
     iconData_.hWnd = window_;
