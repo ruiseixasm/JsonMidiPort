@@ -58,6 +58,18 @@ bool TrayIcon::create()
         MAKEINTRESOURCEW(IDI_JSONMIDIPORT)
     );
 
+    if (!iconData_.hIcon)
+    {
+        MessageBoxW(
+            nullptr,
+            L"Failed to load JsonMidiPort icon.",
+            L"JsonMidiPort",
+            MB_OK | MB_ICONERROR
+        );
+
+        return false;
+    }
+
     lstrcpyW(
         iconData_.szTip,
         L"JsonMidiPort"
@@ -65,8 +77,26 @@ bool TrayIcon::create()
 
     if (!Shell_NotifyIconW(NIM_ADD, &iconData_))
     {
+        DWORD error = GetLastError();
+
+        wchar_t message[256];
+
+        swprintf_s(
+            message,
+            L"Shell_NotifyIconW failed.\nError: %lu",
+            error
+        );
+
+        MessageBoxW(
+            nullptr,
+            message,
+            L"JsonMidiPort",
+            MB_OK | MB_ICONERROR
+        );
+
         DestroyWindow(window_);
         window_ = nullptr;
+
         return false;
     }
 
