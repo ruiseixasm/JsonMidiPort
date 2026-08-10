@@ -24,8 +24,17 @@ int WINAPI wWinMain(
 {
     TrayIcon trayIcon(instance);
 
-    if (!trayIcon.create())
-        return 1;
+	if (!trayIcon.create())
+	{
+		MessageBoxW(
+			nullptr,
+			L"TrayIcon::create() failed.",
+			L"JsonMidiPort",
+			MB_OK | MB_ICONERROR
+		);
+
+		return 1;
+	}
 
     MSG message{};
 
