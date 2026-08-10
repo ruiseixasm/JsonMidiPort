@@ -13,51 +13,25 @@ Lesser General Public License for more details.
 https://github.com/ruiseixasm/JsonMidiPlayer
 https://github.com/ruiseixasm/JsonMidiPort
 ]===]
-
 cmake_minimum_required(VERSION 3.15)
-project(JsonMidiPort
-        VERSION 1.0.0
-        DESCRIPTION "A Windows virtual MIDI port"
-        HOMEPAGE_URL "https://github.com/ruiseixasm/JsonMidiPort"
-        LANGUAGES CXX)
 
-# Generates a compile_commands.json file
+project(JsonMidiPort
+    VERSION 1.0.0
+    DESCRIPTION "A Windows virtual MIDI port"
+    HOMEPAGE_URL "https://github.com/ruiseixasm/JsonMidiPort"
+    LANGUAGES CXX
+)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Source files - corrected paths
-set(SOURCES
+add_executable(JsonMidiPort WIN32
     src/main.cpp
     src/JsonMidiPort.cpp
     src/TrayIcon.cpp
+    resources/JsonMidiPort.rc
 )
 
-# Executable
-add_executable(JsonMidiPort ${SOURCES})
-
-# Include directories - removed non-existent single_include
 target_include_directories(JsonMidiPort PRIVATE
     src
-)
-
-# Windows MIDI support
-target_compile_definitions(JsonMidiPort PRIVATE
-    WINDOWS_MM
-)
-
-# Link Windows libraries
-target_link_libraries(JsonMidiPort
-    winmm
-    user32
-    shell32
-)
-
-# Set C++ standard
-set_target_properties(JsonMidiPort PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-)
-
-# Enable Windows subsystem (no console window)
-set_target_properties(JsonMidiPort PROPERTIES
-    WIN32_EXECUTABLE TRUE
+    resources
 )

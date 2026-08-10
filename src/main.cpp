@@ -14,12 +14,26 @@ https://github.com/ruiseixasm/JsonMidiPlayer
 https://github.com/ruiseixasm/JsonMidiPort
 */
 
-#include "JsonMidiPort.h"
+#include "TrayIcon.h"
 
-int main(int argc, char* argv[]) {
+int WINAPI wWinMain(
+    HINSTANCE instance,
+    HINSTANCE,
+    PWSTR,
+    int)
+{
+    TrayIcon trayIcon(instance);
 
-	HelloWorld::HelloWorldCall();
+    if (!trayIcon.create())
+        return 1;
 
-	return 0;
+    MSG message{};
+
+    while (GetMessageW(&message, nullptr, 0, 0) > 0)
+    {
+        TranslateMessage(&message);
+        DispatchMessageW(&message);
+    }
+
+    return 0;
 }
-

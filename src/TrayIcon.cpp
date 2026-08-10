@@ -1,12 +1,13 @@
 #include "TrayIcon.h"
 
 #include <shellapi.h>
-#include <windowsx.h>
 
-TrayIcon::TrayIcon()
-    : instance_(nullptr),
+#include "../resources/resource.h"
+
+TrayIcon::TrayIcon(HINSTANCE instance)
+    : instance_(instance),
       window_(nullptr),
-      trayIcon_{},
+      iconData_{},
       enabled_(false)
 {
 }
@@ -16,36 +17,27 @@ TrayIcon::~TrayIcon()
     destroy();
 }
 
-bool TrayIcon::create(
-    HINSTANCE instance,
-    const std::wstring& tooltip)
+bool TrayIcon::create()
 {
-    instance_ = instance;
+    const wchar_t* className = L"JsonMidiPortTray";
 
-    // Register a private window class used to receive tray messages.
-    const wchar_t* className = L"JsonMidiPortTrayWindow";
+    WNDCLASSW wc{};
+    wc.lpfnWndProc = TrayIcon::windowProc;
+    wc.hInstance = instance_;
+    wc.lpszClassName = className;
 
-    WNDCLASSW windowClass{};
-    windowClass.lpfnWndProc = &TrayIcon::windowProc;
-    windowClass.hInstance = instance_;
-    windowClass.lpszClassName = className;
-
-    if (!RegisterClassW(&windowClass))
+    if (!RegisterClassW(&wc) &&
+        GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
     {
-        if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-            return false;
+        return false;
     }
 
-    // Create an invisible window.
     window_ = CreateWindowExW(
         0,
         className,
         L"JsonMidiPort",
         0,
-        0,
-        0,
-        0,
-        0,
+        0, 0, 0, 0,
         HWND_MESSAGE,
         nullptr,
         instance_,
@@ -55,41 +47,28 @@ bool TrayIcon::create(
     if (!window_)
         return false;
 
-    trayIcon_ = {};
+    iconData_.cbSize = sizeof(iconData_);
+    iconData_.hWnd = window_;
+    iconData_.uID = 1;
+    iconData_.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    iconData_.uCallbackMessage = WM_TRAYICON;
 
-    trayIcon_.cbSize = sizeof(NOTIFYICONDATAW);
-    trayIcon_.hWnd = window_;
-    trayIcon_.uID = 1;
-
-    trayIcon_.uFlags =
-        NIF_MESSAGE |
-        NIF_ICON |
-        NIF_TIP;
-
-    trayIcon_.uCallbackMessage = WM_TRAYICON;
-
-    // Temporary standard Windows application icon.
-    trayIcon_.hIcon = LoadIconW(
-        nullptr,
-        IDI_APPLICATION
+    iconData_.hIcon = LoadIconW(
+        instance_,
+        MAKEINTRESOURCEW(IDI_JSONMIDIPORT)
     );
 
-    wcsncpy_s(
-        trayIcon_.szTip,
-        tooltip.c_str(),
-        _TRUNCATE
+    lstrcpyW(
+        iconData_.szTip,
+        L"JsonMidiPort"
     );
 
-    if (!Shell_NotifyIconW(
-            NIM_ADD,
-            &trayIcon_))
+    if (!Shell_NotifyIconW(NIM_ADD, &iconData_))
     {
         DestroyWindow(window_);
         window_ = nullptr;
         return false;
     }
-
-    updateIcon();
 
     return true;
 }
@@ -101,7 +80,7 @@ void TrayIcon::destroy()
 
     Shell_NotifyIconW(
         NIM_DELETE,
-        &trayIcon_
+        &iconData_
     );
 
     DestroyWindow(window_);
@@ -111,58 +90,9 @@ void TrayIcon::destroy()
 void TrayIcon::setEnabled(bool enabled)
 {
     enabled_ = enabled;
-    updateIcon();
 }
 
-bool TrayIcon::isEnabled() const
-{
-    return enabled_;
-}
-
-void TrayIcon::setOnToggle(
-    std::function<void(bool)> callback)
-{
-    onToggle_ = std::move(callback);
-}
-
-void TrayIcon::setOnExit(
-    std::function<void()> callback)
-{
-    onExit_ = std::move(callback);
-}
-
-bool TrayIcon::processMessage(MSG& message)
-{
-    if (message.message == WM_QUIT)
-        return false;
-
-    TranslateMessage(&message);
-    DispatchMessageW(&message);
-
-    return true;
-}
-
-void TrayIcon::updateIcon()
-{
-    if (!window_)
-        return;
-
-    trayIcon_.hIcon = LoadIconW(
-        nullptr,
-        enabled_
-            ? IDI_INFORMATION
-            : IDI_APPLICATION
-    );
-
-    trayIcon_.uFlags = NIF_ICON;
-
-    Shell_NotifyIconW(
-        NIM_MODIFY,
-        &trayIcon_
-    );
-}
-
-void TrayIcon::showContextMenu()
+void TrayIcon::showMenu()
 {
     HMENU menu = CreatePopupMenu();
 
@@ -172,10 +102,8 @@ void TrayIcon::showContextMenu()
     AppendMenuW(
         menu,
         MF_STRING,
-        ID_TOGGLE,
-        enabled_
-            ? L"Turn Off"
-            : L"Turn On"
+        enabled_ ? ID_DISABLE : ID_ENABLE,
+        enabled_ ? L"Disable" : L"Enable"
     );
 
     AppendMenuW(
@@ -192,17 +120,16 @@ void TrayIcon::showContextMenu()
         L"Exit"
     );
 
-    POINT cursorPosition{};
-    GetCursorPos(&cursorPosition);
+    POINT point;
+    GetCursorPos(&point);
 
-    // Required for popup menus associated with tray icons.
     SetForegroundWindow(window_);
 
     TrackPopupMenu(
         menu,
         TPM_RIGHTBUTTON,
-        cursorPosition.x,
-        cursorPosition.y,
+        point.x,
+        point.y,
         0,
         window_,
         nullptr
@@ -217,31 +144,24 @@ LRESULT CALLBACK TrayIcon::windowProc(
     WPARAM wParam,
     LPARAM lParam)
 {
-    TrayIcon* trayIcon = nullptr;
+    TrayIcon* trayIcon =
+        reinterpret_cast<TrayIcon*>(
+            GetWindowLongPtrW(hwnd, GWLP_USERDATA)
+        );
 
     if (message == WM_NCCREATE)
     {
-        const auto* createStruct =
+        auto* create =
             reinterpret_cast<CREATESTRUCTW*>(lParam);
 
         trayIcon =
-            static_cast<TrayIcon*>(createStruct->lpCreateParams);
+            static_cast<TrayIcon*>(create->lpCreateParams);
 
         SetWindowLongPtrW(
             hwnd,
             GWLP_USERDATA,
             reinterpret_cast<LONG_PTR>(trayIcon)
         );
-    }
-    else
-    {
-        trayIcon =
-            reinterpret_cast<TrayIcon*>(
-                GetWindowLongPtrW(
-                    hwnd,
-                    GWLP_USERDATA
-                )
-            );
     }
 
     if (trayIcon)
@@ -268,19 +188,9 @@ LRESULT TrayIcon::handleMessage(
 {
     if (message == WM_TRAYICON)
     {
-        switch (LOWORD(lParam))
+        if (lParam == WM_RBUTTONUP)
         {
-        case WM_RBUTTONUP:
-            showContextMenu();
-            return 0;
-
-        case WM_LBUTTONUP:
-            enabled_ = !enabled_;
-            updateIcon();
-
-            if (onToggle_)
-                onToggle_(enabled_);
-
+            showMenu();
             return 0;
         }
     }
@@ -289,19 +199,16 @@ LRESULT TrayIcon::handleMessage(
     {
         switch (LOWORD(wParam))
         {
-        case ID_TOGGLE:
-            enabled_ = !enabled_;
-            updateIcon();
+        case ID_ENABLE:
+            setEnabled(true);
+            return 0;
 
-            if (onToggle_)
-                onToggle_(enabled_);
-
+        case ID_DISABLE:
+            setEnabled(false);
             return 0;
 
         case ID_EXIT:
-            if (onExit_)
-                onExit_();
-
+            PostQuitMessage(0);
             return 0;
         }
     }
