@@ -31,6 +31,7 @@ private:
     );
 
     LRESULT handleMessage(
+        HWND hwnd,
         UINT message,
         WPARAM wParam,
         LPARAM lParam

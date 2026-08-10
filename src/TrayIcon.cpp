@@ -45,7 +45,7 @@ bool TrayIcon::create()
         L"JsonMidiPort",
         0,
         0, 0, 0, 0,
-        HWND_MESSAGE,
+        nullptr,
         nullptr,
         instance_,
         this
@@ -53,9 +53,19 @@ bool TrayIcon::create()
 
     if (!window_)
     {
+        DWORD error = GetLastError();
+
+        wchar_t message[256];
+        swprintf_s(
+            message,
+            256,
+            L"CreateWindowExW failed.\nError: %lu",
+            error
+        );
+
         MessageBoxW(
             nullptr,
-            L"CreateWindowExW failed.",
+            message,
             L"JsonMidiPort",
             MB_OK | MB_ICONERROR
         );
@@ -190,10 +200,7 @@ LRESULT CALLBACK TrayIcon::windowProc(
     WPARAM wParam,
     LPARAM lParam)
 {
-    TrayIcon* trayIcon =
-        reinterpret_cast<TrayIcon*>(
-            GetWindowLongPtrW(hwnd, GWLP_USERDATA)
-        );
+    TrayIcon* trayIcon = nullptr;
 
     if (message == WM_NCCREATE)
     {
@@ -209,10 +216,18 @@ LRESULT CALLBACK TrayIcon::windowProc(
             reinterpret_cast<LONG_PTR>(trayIcon)
         );
     }
+    else
+    {
+        trayIcon =
+            reinterpret_cast<TrayIcon*>(
+                GetWindowLongPtrW(hwnd, GWLP_USERDATA)
+            );
+    }
 
     if (trayIcon)
     {
         return trayIcon->handleMessage(
+            hwnd,
             message,
             wParam,
             lParam
@@ -228,6 +243,7 @@ LRESULT CALLBACK TrayIcon::windowProc(
 }
 
 LRESULT TrayIcon::handleMessage(
+    HWND hwnd,
     UINT message,
     WPARAM wParam,
     LPARAM lParam)
@@ -260,7 +276,7 @@ LRESULT TrayIcon::handleMessage(
     }
 
     return DefWindowProcW(
-        window_,
+        hwnd,
         message,
         wParam,
         lParam
